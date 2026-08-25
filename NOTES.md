@@ -68,7 +68,34 @@
 
 - **User-preference / prompt feature deliberately deferred to last** — sequencing choice, not
   an oversight; build the working pipeline first, then decide what's actually configurable.
-  
+
 - **No fine-grained git history** — iterated by testing against real output, not committing
   every step. Not a grading criterion for this exercise; explain the process verbally using
   these notes rather than relying on commit log.
+
+
+  ## User preferences / prompt feature
+
+- **Why it matters**: without this, the tool always produces the identical deck regardless of
+  who's asking or why. The brief explicitly names free-text user preferences as an input
+  ("Turn this into a 5-slide presentation...") — this is what makes the tool responsive rather
+  than a static report generator.
+
+- **Kept minimal on purpose**: only `slide_count` extraction via regex (`slides_code/prompt.py`)
+  — not focus/tone. RAG/NLP would be overkill for extracting a number from a sentence; a fixed
+  keyword/regex parser is simple, explainable, and sufficient for this scope.
+
+- **Design**: parsing (turn text → structured data) is a separate step from applying
+  (use that data to change what gets built) — kept `parse_prompt()` independent of `DeckBuilder`
+  so interpretation and rendering don't get tangled together.
+
+- **Default behavior is unchanged when nothing's specified** — if `slide_count` isn't found in
+  the prompt, `max_charts` stays `None`, and the full, untouched deck (all categories) is built.
+  The feature only kicks in when the prompt actually requests something.
+  
+- **Edge case: what if the user asks for more slides than there's data for?**
+  (e.g. "10-slide" but only 3 categories exist) — `list[:n]` in Python never errors even when
+  `n` exceeds the list length, it just returns everything available. So this doesn't crash, but
+  it *would* silently under-deliver (5 slides instead of the requested 10) without saying so.
+  Fixed by adding an explicit check that prints a note when the request exceeds what's
+  available, so the shortfall is visible instead of silent.

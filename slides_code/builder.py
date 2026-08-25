@@ -4,7 +4,7 @@ from pptx.util import Inches, Pt
 from pptx.chart.data import CategoryChartData
 from pptx.enum.chart import XL_CHART_TYPE # Specifies the type of a chart
 from pptx.dml.color import RGBColor
-import textwrap
+
 
 # fixed palette so bar colors are identical across every viewer (PowerPoint,
 # Keynote, LibreOffice) instead of each one applying its own default theme

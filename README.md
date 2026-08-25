@@ -102,3 +102,19 @@ optionally converted to `.pdf` via LibreOffice.
 - **No automated tests.** Verification so far has been manual — running the pipeline against the
   real JSON and a few hand-constructed malformed inputs, then visually checking the output.
   With more time I'd add a few `pytest` cases covering the edge cases above.
+
+- **User-preference parsing only handles slide count, not tone or focus area.** The brief names
+  tone, branding, and focus areas as possible preferences alongside slide count; I scoped this
+  down to slide count only, given time constraints. It's implemented as a small, deliberately
+  simple regex parser (`slides_code/prompt.py`) rather than an LLM/NLP approach — extracting a
+  number from a sentence doesn't need that complexity, and keeping parsing separate from
+  rendering (`DeckBuilder` never sees the raw prompt) kept the two concerns decoupled. With more
+  time, I'd extend the same parser to match focus-area keywords against category names (to
+  reorder/filter `key_insights`) and a small set of tone keywords (e.g. "C-level"/"executive" →
+  fewer summary bullets).
+
+- **Requesting more slides than there's data for doesn't crash, but does under-deliver by
+  design.** If a prompt asks for more slides than there are insight categories (e.g. "10-slide"
+  with only 3 categories available), the tool prints a note explaining the shortfall and
+  generates as many slides as the data actually supports, rather than fabricating content or
+  erroring out.
