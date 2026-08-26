@@ -2,7 +2,7 @@ import os
 from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.chart.data import CategoryChartData
-from pptx.enum.chart import XL_CHART_TYPE # Specifies the type of a chart
+from pptx.enum.chart import XL_CHART_TYPE  # Specifies the type of a chart
 from pptx.dml.color import RGBColor
 
 
@@ -28,7 +28,7 @@ class DeckBuilder:
         self.blank_layout = self.prs.slide_layouts[6]  # DRY principle
 
     def add_title_slide(self, title, subtitle=""):
-        slide = self.prs.slides.add_slide(self.blank_layout) 
+        slide = self.prs.slides.add_slide(self.blank_layout)
 
         title_box = slide.shapes.add_textbox(Inches(0.8), Inches(2.2), Inches(8.4), Inches(0.9))
         title_frame = title_box.text_frame
@@ -38,10 +38,11 @@ class DeckBuilder:
         title_frame.paragraphs[0].font.bold = True
 
         if subtitle:
-            subtitle_box = slide.shapes.add_textbox(Inches(0.8), Inches(3.9), Inches(8.4), Inches(0.6))
+            subtitle_box = slide.shapes.add_textbox(
+                Inches(0.8), Inches(3.9), Inches(8.4), Inches(0.6))
             subtitle_frame = subtitle_box.text_frame
             subtitle_frame.text = subtitle
-            subtitle_frame.word_wrap = True  
+            subtitle_frame.word_wrap = True
             subtitle_frame.paragraphs[0].font.size = Pt(20)
 
         return slide
@@ -53,17 +54,17 @@ class DeckBuilder:
         title_box = slide.shapes.add_textbox(Inches(0.5), Inches(0.3), Inches(9), Inches(0.6))
         title_frame = title_box.text_frame
         title_frame.text = category
-        title_frame.word_wrap = True 
+        title_frame.word_wrap = True
         title_frame.paragraphs[0].font.size = Pt(28)
         title_frame.paragraphs[0].font.bold = True
-        
 
         # --- one-line insight, under the title ---
         if insight_text:
-            insight_box = slide.shapes.add_textbox(Inches(0.5), Inches(0.95), Inches(9), Inches(0.5))
+            insight_box = slide.shapes.add_textbox(
+                Inches(0.5), Inches(0.95), Inches(9), Inches(0.5))
             insight_frame = insight_box.text_frame
             insight_frame.text = insight_text
-            insight_frame.word_wrap = True 
+            insight_frame.word_wrap = True
             insight_frame.paragraphs[0].font.size = Pt(14)
             insight_frame.paragraphs[0].font.italic = True
 
@@ -112,18 +113,22 @@ class DeckBuilder:
             category_axis = chart_frame.chart.category_axis
             category_axis.tick_labels.font.size = Pt(10)
         else:
-            placeholder_box = slide.shapes.add_textbox(Inches(0.8), Inches(1.6), Inches(8.4), Inches(1))
+            placeholder_box = slide.shapes.add_textbox(
+                Inches(0.8), Inches(1.6), Inches(8.4), Inches(1))
             placeholder_frame = placeholder_box.text_frame
             placeholder_frame.text = "No chart data available"
             placeholder_frame.word_wrap = True
             placeholder_frame.paragraphs[0].font.size = Pt(16)
             placeholder_frame.paragraphs[0].font.italic = True
-        
 
         # --- source citation, bottom of slide ---
         if source:
-            citation_text = f"Source: {source.get('name', 'Unknown')} — {source.get('conductor', '')}, {source.get('publication_date', '')}"
-            citation_box = slide.shapes.add_textbox(Inches(0.5), Inches(6.8), Inches(9), Inches(0.5))
+            citation_text = (
+                f"Source: {source.get('name', 'Unknown')} — "
+                f"{source.get('conductor', '')}, {source.get('publication_date', '')}"
+            )
+            citation_box = slide.shapes.add_textbox(
+                Inches(0.5), Inches(6.8), Inches(9), Inches(0.5))
             citation_frame = citation_box.text_frame
             citation_frame.text = citation_text
             citation_frame.word_wrap = True
@@ -134,7 +139,7 @@ class DeckBuilder:
 
     def add_summary_slide(self, summary_text, caveat=None):
         slide = self.prs.slides.add_slide(self.blank_layout)
-        
+
         # --- title ---
         title_box = slide.shapes.add_textbox(Inches(0.5), Inches(0.3), Inches(9), Inches(0.6))
         title_frame = title_box.text_frame
@@ -143,12 +148,11 @@ class DeckBuilder:
         title_frame.paragraphs[0].font.size = Pt(28)
         title_frame.paragraphs[0].font.bold = True
 
-
         # --- summary, split into bullet-style sentences ---
         body_box = slide.shapes.add_textbox(Inches(0.5), Inches(1.1), Inches(9), Inches(5.2))
         body_frame = body_box.text_frame
         body_frame.word_wrap = True
-        
+
         # split on paragraph breaks first (colon + \n\n isn't caught by '. ' alone),
         # then split each paragraph into sentences
         paragraphs = summary_text.split('\n\n')
@@ -171,7 +175,6 @@ class DeckBuilder:
             paragraph.font.size = Pt(14)
             paragraph.space_after = Pt(10)
 
-
         # --- caveat, if provided ---
         if caveat:
             caveat_box = slide.shapes.add_textbox(Inches(0.5), Inches(6.6), Inches(9), Inches(0.7))
@@ -182,7 +185,6 @@ class DeckBuilder:
             caveat_frame.paragraphs[0].font.italic = True
 
         return slide
-
 
     def save(self, path):
         os.makedirs(os.path.dirname(path), exist_ok=True)

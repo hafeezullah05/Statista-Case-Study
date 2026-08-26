@@ -1,5 +1,6 @@
 import re
 
+
 def parse_prompt(prompt):
     slide_count = None
     match = re.search(r'(\d+)[- ]slide', prompt, re.IGNORECASE)
