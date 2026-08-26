@@ -170,3 +170,26 @@ logic is duplicated between the script and the notebook.
   PDF export silently produced a wrongly-named file, masked by a stale leftover file with the
   intended name from an earlier manual run. Fixed by explicitly renaming the file LibreOffice
   produces to the intended name (`os.replace(...)`) right after conversion.
+- **Summary content is static/selected, not genuinely summarized or contextualized to the
+  user.** When the deck is a smaller subset, the summary slide picks between two pre-written
+  texts — the full JSON narrative, or a naive concatenation of the included categories'
+  one-line `insight` fields — based on a simple length check. Neither is real summarization:
+  no actual compression or rewriting happens. This shows up concretely at the low end: a
+  2-slide request (0 charts included) falls back to the full 8-bullet narrative rather than a
+  genuinely condensed 2-3 sentence takeaway, because there's nothing to build a scoped summary
+  from and no mechanism to *generate* one. The deck also has no concept of who's viewing it —
+  every user gets the same static content selection regardless of role or context, beyond the
+  one slide-count knob.
+
+  With more time, I'd replace this static selection with a small LLM call that generates an
+  actually-contextualized summary: tailored to the requested slide count/compression level, the
+  specific categories included, and ideally a lightweight user profile (e.g. "executive" vs
+  "analyst") feeding into tone and depth — closer to genuine contextual summarization than
+  picking between two fixed strings. I'd deliberately keep this scoped to the summary slide
+  only, not the chart data or citations, since those need to stay exact/verifiable — an LLM
+  rewriting statistics or source attribution risks introducing inaccuracies in the one place
+  precision matters most. Honestly, I'd treat this as a real scope increase, not a quick add:
+  it introduces a new dependency (API call or local model), non-determinism (harder to test and
+  verify than the current deterministic logic), latency/cost, and a new failure mode (API
+  unavailable, hallucinated content) — worth doing for a real product, but correctly out of
+  scope for this prototype.
