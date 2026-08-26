@@ -20,11 +20,13 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Then either run it as a script:
+Then run it from the command line:
 ```bash
 python main.py
 ```
-or launch the notebook version (same logic, interactive/exploratory form):
+It will prompt you interactively for an optional presentation request (press Enter for the
+default). A notebook version with identical logic is also available if you'd rather run/inspect
+it interactively cell by cell:
 ```bash
 jupyter notebook main.ipynb
 ```
@@ -61,17 +63,31 @@ optionally converted to `.pdf` via LibreOffice.
 ## How to run it
 1. Set up the Python environment (see Setup above) and install dependencies.
 2. Make sure LibreOffice is installed if you want the PDF output (see Setup above).
-3. Run it either as a script (`python main.py`, prompts you interactively for a request) or by
-   opening `main.ipynb` in Jupyter and running all cells top to bottom (same logic, same
-   interactive prompt cell). Either way it will:
+3. From the project root, run:
+   ```bash
+   python main.py
+   ```
+   It will:
    - Load `Task Requirment/gen_z_purchase_behavior_analysis.json`
-   - Ask for an optional free-text presentation request (press Enter for the default)
+   - Ask for an optional free-text presentation request (e.g. `"Turn this into a 5-slide
+     presentation"`) — press Enter to use the default
    - Build the deck via the `DeckBuilder` class in `slides_code/builder.py`
    - Save it to `example_output/statista_ppt.pptx`
    - Convert it to `example_output/statista_pdf.pdf`
 
-Both entry points import the same `slides_code` modules — no logic is duplicated between the
-script and the notebook, just two different ways to run the same pipeline.
+   Example session:
+   ```
+   $ python main.py
+   Enter your presentation request (e.g. "Turn this into a 5-slide presentation"). Only slide
+   count is currently understood — press Enter for the default:
+   {'slide_count': 5}
+   OK  example_output/statista_ppt.pptx  (52.2 KB)
+   OK  example_output/statista_pdf.pdf  (56.6 KB)
+   ```
+
+`main.ipynb` runs the identical pipeline for interactive/exploratory use (`jupyter notebook
+main.ipynb`, run all cells) — both entry points import the same `slides_code` modules, so no
+logic is duplicated between the script and the notebook.
 
 ## Libraries used and why
 - **python-pptx** — the core library for building `.pptx` files: slides, textboxes, native
