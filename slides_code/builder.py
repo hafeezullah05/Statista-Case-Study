@@ -23,11 +23,27 @@ CHART_PALETTE = [
 
 
 class DeckBuilder:
+    """Builds a PowerPoint deck slide-by-slide from Statista chat analysis data.
+
+    Wraps a single python-pptx Presentation object. Each add_*_slide method
+    appends one slide to it and returns the new slide. Call save() once all
+    slides have been added to write the deck to disk.
+    """
+
     def __init__(self):
         self.prs = Presentation()
         self.blank_layout = self.prs.slide_layouts[6]  # DRY principle
 
     def add_title_slide(self, title, subtitle=""):
+        """Add the deck's opening slide: a large title and optional subtitle.
+
+        Args:
+            title: main title text.
+            subtitle: optional subtitle text; skipped entirely if empty.
+
+        Returns:
+            The newly created slide.
+        """
         slide = self.prs.slides.add_slide(self.blank_layout)
 
         title_box = slide.shapes.add_textbox(Inches(0.8), Inches(2.2), Inches(8.4), Inches(0.9))
@@ -48,6 +64,24 @@ class DeckBuilder:
         return slide
 
     def add_chart_slide(self, category, insight_text, metrics, source):
+        """Add a slide with a title, an optional insight line, a bar chart
+        built from `metrics`, and a source citation.
+
+        Args:
+            category: slide title text (the insight category name).
+            insight_text: optional one-line summary shown under the title;
+                skipped entirely if falsy.
+            metrics: list of dicts, each expected to have a label under one of
+                'action'/'statement'/'brand' and a numeric 'percentage'. Not a
+                list, or containing non-dict items, is handled gracefully
+                (falls back to a "No chart data available" placeholder rather
+                than crashing) -- see EDGE_CASE.md.
+            source: dict with citation fields (name, conductor,
+                publication_date); if falsy, no citation is rendered.
+
+        Returns:
+            The newly created slide.
+        """
         slide = self.prs.slides.add_slide(self.blank_layout)
 
         # --- title ---
@@ -138,6 +172,19 @@ class DeckBuilder:
         return slide
 
     def add_summary_slide(self, summary_text, caveat=None):
+        """Add a closing slide: `summary_text` split into bullet points, plus
+        an optional caveat note about data quality.
+
+        Args:
+            summary_text: a block of prose; split on paragraph breaks then
+                sentence boundaries into one bullet per sentence (a simple
+                heuristic -- see EDGE_CASE.md for its known limitations).
+            caveat: optional string rendered as a small italic note at the
+                bottom of the slide; skipped entirely if falsy.
+
+        Returns:
+            The newly created slide.
+        """
         slide = self.prs.slides.add_slide(self.blank_layout)
 
         # --- title ---
@@ -187,5 +234,11 @@ class DeckBuilder:
         return slide
 
     def save(self, path):
+        """Write the deck to disk at `path`, creating parent directories if
+        they don't already exist.
+
+        Args:
+            path: destination file path, e.g. 'example_output/statista_ppt.pptx'.
+        """
         os.makedirs(os.path.dirname(path), exist_ok=True)
         self.prs.save(path)

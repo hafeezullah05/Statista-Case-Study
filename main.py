@@ -25,11 +25,24 @@ SOFFICE_PATH = "/Applications/LibreOffice.app/Contents/MacOS/soffice"
 
 
 def load_data(path):
+    """Load and parse the Statista chat JSON file at `path`.
+
+    Args:
+        path: path to the JSON file.
+
+    Returns:
+        The parsed JSON as a dict.
+    """
     with open(path, 'r') as file:
         return json.load(file)
 
 
 def get_user_prompt():
+    """Interactively ask for a free-text presentation request.
+
+    Returns:
+        The typed string, or a default request if the user just pressed Enter.
+    """
     user_prompt = input(
         "Enter your presentation request (e.g. \"Turn this into a 5-slide presentation\"). "
         "Only slide count is currently understood — press Enter for the default: "
@@ -42,6 +55,19 @@ def get_user_prompt():
 
 
 def build_deck(analysis, preferences, output_path):
+    """Build the full deck (title, one chart slide per included category,
+    summary) and save it to `output_path`.
+
+    `preferences['slide_count']`, if set, caps how many chart slides are
+    included (clamped to never go below 0, with a printed note if the
+    request is below the achievable minimum or above what the data supports
+    -- see EDGE_CASE.md).
+
+    Args:
+        analysis: the 'analysis' dict from the input JSON.
+        preferences: dict from parse_prompt(), used here for 'slide_count'.
+        output_path: where to save the .pptx file.
+    """
     db = DeckBuilder()
 
     region = analysis['data_sources']['primary_region']
@@ -78,6 +104,18 @@ def build_deck(analysis, preferences, output_path):
 
 
 def convert_to_pdf(pptx_path, output_dir):
+    """Convert `pptx_path` to PDF via LibreOffice headless mode, renaming the
+    result to match PDF_PATH (LibreOffice only lets you choose an output
+    directory, not an output filename -- see README's "Known limitations").
+
+    Args:
+        pptx_path: path to the already-saved .pptx file to convert.
+        output_dir: directory to write the PDF into.
+
+    Returns:
+        True if conversion succeeded, False if LibreOffice is missing or the
+        conversion itself failed (pptx is unaffected either way).
+    """
     if not os.path.exists(SOFFICE_PATH):
         print(f"LibreOffice not found at {SOFFICE_PATH} — skipping PDF export. "
               f"pptx was still generated successfully.")
@@ -107,6 +145,12 @@ def convert_to_pdf(pptx_path, output_dir):
 
 
 def verify_output(paths):
+    """Print OK/MISSING and file size for each path in `paths` -- a final
+    sanity check that the pipeline actually produced its expected files.
+
+    Args:
+        paths: list of file paths to check.
+    """
     for f in paths:
         if os.path.exists(f):
             size_kb = os.path.getsize(f) / 1024
@@ -116,6 +160,8 @@ def verify_output(paths):
 
 
 def main():
+    """Run the full pipeline: load data, ask for preferences, build the
+    deck, export to PDF, and verify the output files exist."""
     data = load_data(JSON_PATH)
     analysis = data['analysis']
 
