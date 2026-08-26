@@ -135,10 +135,17 @@ logic is duplicated between the script and the notebook.
   down to slide count only, given time constraints. It's implemented as a small, deliberately
   simple regex parser (`slides_code/prompt.py`) rather than an LLM/NLP approach — extracting a
   number from a sentence doesn't need that complexity, and keeping parsing separate from
-  rendering (`DeckBuilder` never sees the raw prompt) kept the two concerns decoupled. With more
-  time, I'd extend the same parser to match focus-area keywords against category names (to
-  reorder/filter `key_insights`) and a small set of tone keywords (e.g. "C-level"/"executive" →
-  fewer summary bullets).
+  rendering (`DeckBuilder` never sees the raw prompt) kept the two concerns decoupled.
+
+  Honestly, this needs more time than I had left to do well — my estimate is roughly
+  2.5-3.5 hours for a version with the same quality bar as the slide-count feature (tested,
+  documented, edge cases considered), broken down as: keyword-matching focus areas against
+  category names (~45-60 min, plus deciding whether a match should filter or just reorder
+  `key_insights`), tone keywords adjusting summary bullet count (~45-60 min, touching
+  `add_summary_slide`'s logic), working out how slide count/focus/tone should interact when
+  more than one is present in the same prompt (~30-45 min — the fiddliest part), and testing
+  plus doc updates (~30-45 min). Mostly localized to `prompt.py` and the build loop in
+  `main.py`/`main.ipynb`; `DeckBuilder` itself likely wouldn't need to change.
 
 - **Requesting more slides than there's data for doesn't crash, but does under-deliver by
   design.** If a prompt asks for more slides than there are insight categories (e.g. "10-slide"
