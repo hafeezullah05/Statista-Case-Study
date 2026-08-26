@@ -1,7 +1,7 @@
-# Edge Cases — Found, Fixed, and Verified
+# Edge Cases - Found, Fixed, and Verified
 
 This documents the specific edge cases discovered and fixed during development, along with how
-each was verified. No automated test suite was built (see README's "Known limitations" — out of
+each was verified. No automated test suite was built (see README's "Known limitations" - out of
 scope per the brief); verification was manual, run against the real JSON and hand-constructed
 malformed inputs in a scratch script.
 
@@ -10,14 +10,14 @@ malformed inputs in a scratch script.
 **Behavior:** `add_title_slide` + one `add_chart_slide` per category + `add_summary_slide`
 produces exactly `len(key_insights) + 2` slides.
 **Verified:** Ran full pipeline against `gen_z_purchase_behavior_analysis.json` with a
-"5-slide" prompt (3 categories + title + summary = 5) — confirmed 5 slides generated.
+"5-slide" prompt (3 categories + title + summary = 5) - confirmed 5 slides generated.
 
 ## 2. `metrics` is `None` (or not a list at all)
 **Case:** A `key_insights` entry has a missing or malformed `metrics` field.
-**Behavior:** `add_chart_slide` checks `isinstance(metrics, list)` before iterating — if false,
+**Behavior:** `add_chart_slide` checks `isinstance(metrics, list)` before iterating - if false,
 the loop is skipped entirely, `labels`/`values` stay empty, and a "No chart data available"
 placeholder textbox renders instead of a broken/empty chart.
-**Verified:** Called `add_chart_slide(..., metrics=None, ...)` directly — no crash, placeholder
+**Verified:** Called `add_chart_slide(..., metrics=None, ...)` directly - no crash, placeholder
 rendered, slide still saved successfully.
 
 ## 3. `metrics` contains a non-dict item
@@ -25,7 +25,7 @@ rendered, slide still saved successfully.
 **Behavior:** Each item is checked with `isinstance(m, dict)`; non-dict items are skipped via
 `continue` rather than crashing on `m.get(...)`.
 **Verified:** Called `add_chart_slide(..., metrics=['a string', 123, {'action': 'ok', 'percentage': 10}], ...)`
-— confirmed only the valid dict became a bar, no exception raised.
+- confirmed only the valid dict became a bar, no exception raised.
 
 ## 4. `parse_prompt("5-slide...")` extracts the number correctly
 **Case:** A prompt mentioning a slide count in the expected format.
@@ -39,33 +39,33 @@ returned `{'slide_count': 5}`.
 rather than raising an error.
 **Verified:** `parse_prompt("Just give me the standard deck")` returned `{'slide_count': None}`.
 
-## 6. `slide_count` of `0` or `1` — two real bugs found and fixed
+## 6. `slide_count` of `0` or `1` - two real bugs found and fixed
 **Case:** A prompt requests fewer slides than the mandatory minimum (title + summary = 2).
 **Bug found:** `max_charts = slide_count - 2` went negative (e.g. `-1` for `slide_count=1`),
 and Python's negative list slicing (`list[:-1]`) silently returns *more* items than intended,
-counting from the end — producing a larger deck than requested, backwards from expectations.
+counting from the end - producing a larger deck than requested, backwards from expectations.
 A second bug: `slide_count=0` is falsy in Python, so `if preferences['slide_count']:` treated
 it identically to "no count found," silently falling back to the full deck instead of the
 requested (impossible) zero.
 **Fix:**
-- `max_charts = max(0, slide_count - 2)` — clamps to never go negative.
-- Changed the check to `if preferences['slide_count'] is not None:` — distinguishes "not found"
+- `max_charts = max(0, slide_count - 2)` - clamps to never go negative.
+- Changed the check to `if preferences['slide_count'] is not None:` - distinguishes "not found"
   (`None`) from "found, but zero" (`0`).
 - Added a printed note when the request is below the achievable minimum, explaining the
   2-slide floor rather than silently ignoring or misinterpreting the request.
 **Verified:** Tested `slide_count` values of `0`, `1`, `2`, `3`, `5`, `10` directly against a
-mock 3-category list — confirmed each produces the correct, expected slide count with no
+mock 3-category list - confirmed each produces the correct, expected slide count with no
 negative-slicing surprises.
 
 ## 7. Scoped summary produces an empty/blank slide when 0 categories are included
-**Case:** A request that clamps to 0 chart slides (e.g. `slide_count` of `0`, `1`, or `2`) —
+**Case:** A request that clamps to 0 chart slides (e.g. `slide_count` of `0`, `1`, or `2`) -
 the deck contains just a title and summary, no charts.
 **Bug found:** The summary-scoping logic (added to keep the summary consistent with a partial
-deck — see main pipeline logic in `main.py`/`main.ipynb`) built `summary_text` by joining the
+deck - see main pipeline logic in `main.py`/`main.ipynb`) built `summary_text` by joining the
 `insight` field of every included category: `' '.join(insight['insight'] for insight in
 insights_to_build)`. When `insights_to_build` is an empty list (0 categories included), this
 join produces an empty string `''`. `add_summary_slide('', ...)` then renders a slide with the
-"Summary & Key Takeaways" title but a completely blank body — no bullets, no content, no crash,
+"Summary & Key Takeaways" title but a completely blank body - no bullets, no content, no crash,
 just a broken-looking slide.
 **Fix:** Added an `insights_to_build and` guard before the length check, so the scoped-summary
 branch only triggers when there's at least one category to build a summary from. Zero
@@ -77,7 +77,7 @@ if insights_to_build and len(insights_to_build) < len(analysis['key_insights']):
 else:
     summary_text = analysis['summary']
 ```
-**Verified:** Ran the full pipeline with a "2-slide" request (0 categories included) — before
+**Verified:** Ran the full pipeline with a "2-slide" request (0 categories included) - before
 the fix, the summary slide's body text was `''` (confirmed by inspecting the shape's
 `text_frame.text` directly); after the fix, it correctly falls back to the full narrative
 summary. Also verified the full range `1` through `5`: each slide count produces the correct
@@ -85,19 +85,19 @@ total slide count, correct chart count, and either a scoped or full summary as a
 
 ## 8. Summary content didn't match a trimmed deck's actual content
 **Case:** A deck built with fewer than all 3 categories (e.g. a "4-slide" request, 2 charts
-included) — the summary slide.
+included) - the summary slide.
 **Bug found:** `add_summary_slide` was always called with the full `analysis['summary']`
 narrative, regardless of how many chart slides had actually been built. So a 2-chart deck's
-summary slide still narrated content from the 3rd, dropped category — inconsistent with what
+summary slide still narrated content from the 3rd, dropped category - inconsistent with what
 the deck actually showed. Spotted this by inspecting a "4-slide" output and noticing the
 summary referenced a category with no corresponding chart in that deck.
-**Fix:** Scope the summary to match what's actually included — when the deck is a genuine
+**Fix:** Scope the summary to match what's actually included - when the deck is a genuine
 subset (`insights_to_build` shorter than the full `key_insights` list, and non-empty), build
 `summary_text` from just those categories' own `insight` one-liners instead of the full
 narrative. Full narrative is kept when nothing was dropped (it's richer than concatenated
 one-liners, and there's nothing inconsistent to fix in that case). See case #7 above for the
 follow-on bug this introduced (empty summary at 0 categories) and its fix.
-**Verified:** Compared a "4-slide" run (2 categories) against a "5-slide" run (all 3) —
+**Verified:** Compared a "4-slide" run (2 categories) against a "5-slide" run (all 3) -
 confirmed the 4-slide summary only references the 2 included categories' insight text, while
 the 5-slide summary still uses the full rich narrative. Cross-checked the full `1`-`5` range
 for consistency between chart count and summary content.
@@ -105,7 +105,7 @@ for consistency between chart count and summary content.
 ## 9. LibreOffice ignores the intended output filename
 **Case:** Converting the pptx to PDF via `soffice --headless --convert-to pdf`.
 **Bug found:** LibreOffice's CLI only accepts an output *directory* (`--outdir`), not an output
-*filename* — it always names the result after the input file's basename (e.g.
+*filename* - it always names the result after the input file's basename (e.g.
 `statista_ppt.pptx` → `statista_ppt.pdf`, never the intended `statista_pdf.pdf`). The first
 version of the PDF export silently produced a wrongly-named file; this went unnoticed at first
 because a stale, correctly-named file from an earlier manual test was still sitting in the
@@ -115,4 +115,4 @@ rather than this run's actual output.
 (input's basename + `.pdf`) and `os.replace()` it to the intended path.
 **Verified:** Deleted the entire output folder first (eliminating any stale-file risk), ran the
 pipeline from scratch, and confirmed via `ls` that exactly the two correctly-named files exist
-— no wrongly-named leftover, no stale data masking the result.
+- no wrongly-named leftover, no stale data masking the result.
