@@ -103,8 +103,11 @@ def build_deck(analysis, preferences, output_path):
     # the full narrative summary would reference content that isn't actually
     # shown -- scope the summary down to just the included categories'
     # insight lines instead. Full narrative is kept when nothing was dropped,
-    # since it's richer than concatenated one-liners.
-    if len(insights_to_build) < len(analysis['key_insights']):
+    # since it's richer than concatenated one-liners. EDGE CASE: if zero
+    # categories are included (e.g. a 2-slide request), there's nothing to
+    # scope down to -- fall back to the full narrative rather than an empty
+    # string, which would render as a blank summary slide.
+    if insights_to_build and len(insights_to_build) < len(analysis['key_insights']):
         summary_text = ' '.join(insight['insight'] for insight in insights_to_build)
     else:
         summary_text = analysis['summary']

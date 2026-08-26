@@ -56,3 +56,29 @@ requested (impossible) zero.
 **Verified:** Tested `slide_count` values of `0`, `1`, `2`, `3`, `5`, `10` directly against a
 mock 3-category list — confirmed each produces the correct, expected slide count with no
 negative-slicing surprises.
+
+## 7. Scoped summary produces an empty/blank slide when 0 categories are included
+**Case:** A request that clamps to 0 chart slides (e.g. `slide_count` of `0`, `1`, or `2`) —
+the deck contains just a title and summary, no charts.
+**Bug found:** The summary-scoping logic (added to keep the summary consistent with a partial
+deck — see main pipeline logic in `main.py`/`main.ipynb`) built `summary_text` by joining the
+`insight` field of every included category: `' '.join(insight['insight'] for insight in
+insights_to_build)`. When `insights_to_build` is an empty list (0 categories included), this
+join produces an empty string `''`. `add_summary_slide('', ...)` then renders a slide with the
+"Summary & Key Takeaways" title but a completely blank body — no bullets, no content, no crash,
+just a broken-looking slide.
+**Fix:** Added an `insights_to_build and` guard before the length check, so the scoped-summary
+branch only triggers when there's at least one category to build a summary from. Zero
+categories now falls through to the full narrative summary (same fallback used when nothing
+was dropped), instead of producing an empty string.
+```python
+if insights_to_build and len(insights_to_build) < len(analysis['key_insights']):
+    summary_text = ' '.join(insight['insight'] for insight in insights_to_build)
+else:
+    summary_text = analysis['summary']
+```
+**Verified:** Ran the full pipeline with a "2-slide" request (0 categories included) — before
+the fix, the summary slide's body text was `''` (confirmed by inspecting the shape's
+`text_frame.text` directly); after the fix, it correctly falls back to the full narrative
+summary. Also verified the full range `1` through `5`: each slide count produces the correct
+total slide count, correct chart count, and either a scoped or full summary as appropriate.
