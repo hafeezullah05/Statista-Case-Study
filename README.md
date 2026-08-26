@@ -193,3 +193,19 @@ logic is duplicated between the script and the notebook.
   verify than the current deterministic logic), latency/cost, and a new failure mode (API
   unavailable, hallucinated content) — worth doing for a real product, but correctly out of
   scope for this prototype.
+- **Which categories get included in a trimmed deck is decided by position, not user choice.**
+  `insights_to_build = analysis['key_insights'][:max_charts]` always keeps the *first* N
+  categories in the JSON's original order. A user who requests "3-slide" always gets Digital
+  Impulses (category 1) — even if what they actually care about is Brand Preferences
+  (category 3), which would get silently dropped. There's currently no way for the user to
+  pick *which* insights they want charted, only *how many*.
+
+  With more time, I'd add explicit category selection, two ways worth considering: (1) extend
+  `parse_prompt` to keyword-match category names in the free-text prompt (ties into the
+  focus-area gap documented above — e.g. "focus on brand preferences" would reorder/filter
+  `key_insights` to prioritize that match), or (2) for the CLI/notebook specifically, print a
+  numbered list of available categories and let the user pick explicitly (e.g. "1. Digital
+  Impulses  2. Fashion  3. Brand Preferences — enter numbers to include"), which is more
+  precise than keyword-matching free text but a different, more form-like interaction style
+  than the current single free-text prompt. Either approach would need `main.py`/`main.ipynb`'s
+  build loop to select by relevance/explicit choice instead of `[:max_charts]` truncation.
