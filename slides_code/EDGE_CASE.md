@@ -82,3 +82,37 @@ the fix, the summary slide's body text was `''` (confirmed by inspecting the sha
 `text_frame.text` directly); after the fix, it correctly falls back to the full narrative
 summary. Also verified the full range `1` through `5`: each slide count produces the correct
 total slide count, correct chart count, and either a scoped or full summary as appropriate.
+
+## 8. Summary content didn't match a trimmed deck's actual content
+**Case:** A deck built with fewer than all 3 categories (e.g. a "4-slide" request, 2 charts
+included) — the summary slide.
+**Bug found:** `add_summary_slide` was always called with the full `analysis['summary']`
+narrative, regardless of how many chart slides had actually been built. So a 2-chart deck's
+summary slide still narrated content from the 3rd, dropped category — inconsistent with what
+the deck actually showed. Spotted this by inspecting a "4-slide" output and noticing the
+summary referenced a category with no corresponding chart in that deck.
+**Fix:** Scope the summary to match what's actually included — when the deck is a genuine
+subset (`insights_to_build` shorter than the full `key_insights` list, and non-empty), build
+`summary_text` from just those categories' own `insight` one-liners instead of the full
+narrative. Full narrative is kept when nothing was dropped (it's richer than concatenated
+one-liners, and there's nothing inconsistent to fix in that case). See case #7 above for the
+follow-on bug this introduced (empty summary at 0 categories) and its fix.
+**Verified:** Compared a "4-slide" run (2 categories) against a "5-slide" run (all 3) —
+confirmed the 4-slide summary only references the 2 included categories' insight text, while
+the 5-slide summary still uses the full rich narrative. Cross-checked the full `1`-`5` range
+for consistency between chart count and summary content.
+
+## 9. LibreOffice ignores the intended output filename
+**Case:** Converting the pptx to PDF via `soffice --headless --convert-to pdf`.
+**Bug found:** LibreOffice's CLI only accepts an output *directory* (`--outdir`), not an output
+*filename* — it always names the result after the input file's basename (e.g.
+`statista_ppt.pptx` → `statista_ppt.pdf`, never the intended `statista_pdf.pdf`). The first
+version of the PDF export silently produced a wrongly-named file; this went unnoticed at first
+because a stale, correctly-named file from an earlier manual test was still sitting in the
+output folder, making `verify_output`'s "OK" check a false positive against leftover data
+rather than this run's actual output.
+**Fix:** After a successful conversion, compute the filename LibreOffice actually produced
+(input's basename + `.pdf`) and `os.replace()` it to the intended path.
+**Verified:** Deleted the entire output folder first (eliminating any stale-file risk), ran the
+pipeline from scratch, and confirmed via `ls` that exactly the two correctly-named files exist
+— no wrongly-named leftover, no stale data masking the result.

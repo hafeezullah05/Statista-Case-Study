@@ -99,3 +99,75 @@
   it *would* silently under-deliver (5 slides instead of the requested 10) without saying so.
   Fixed by adding an explicit check that prints a note when the request exceeds what's
   available, so the shortfall is visible instead of silent.
+
+- **Edge case: what if the user asks for FEWER slides than the mandatory minimum?** (title +
+  summary = 2 slides, always present). `slide_count - 2` can go negative (e.g. `-1` for a
+  request of `1`), and Python's negative list slicing (`list[:-1]`) silently returns *more*
+  items than intended, counting from the end — the opposite of what "fewer slides" should mean.
+  A second, separate bug: `slide_count=0` is falsy in Python, so a plain `if
+  preferences['slide_count']:` check treated an explicit zero identically to "no count found,"
+  silently defaulting to the full deck. Fixed both: `max(0, slide_count - 2)` clamps to never
+  go negative, and the check became `is not None` to distinguish "not found" from "found, but
+  zero." See `EDGE_CASE.md` #6 for the full verification.
+
+## Layout/positioning gotchas (found by actually rendering and looking)
+
+- **Subtitle overlapped a wrapped 2-line title** — fixing the earlier `word_wrap` overflow bug
+  meant a long title could now wrap to 2 lines, but the subtitle box below it had a fixed `top`
+  position that assumed a 1-line title. Fixed by moving the subtitle's vertical position down
+  (`Inches(3.2)` → `Inches(3.9)`) to leave room. A patch, not a robust fix — a 3-line title
+  would hit the same problem again; a proper fix would calculate position dynamically based on
+  how many lines the title actually wrapped to, which python-pptx doesn't make easy.
+
+- **Chart's numeric axis had no unit indicator** — the percentage values (0-60) had no "%"
+  label anywhere near them, just the chart's title text doing that job informally. Fixed by
+  setting `value_axis.has_title = True` and an explicit "Percentage (%)" axis title.
+  `add_chart()` returns a `GraphicFrame`, not the `Chart` object itself — need `.chart` to reach
+  `.value_axis`/`.category_axis` at all.
+
+## Post-PEP8 additions (main.py, docstrings, output consolidation)
+
+- **Converted the notebook pipeline into `main.py`** (a plain CLI script) alongside
+  `main.ipynb`, per the brief's own note that "a script you run from the command line works
+  just fine." Both import the same `slides_code` modules — zero logic duplicated, just two
+  entry points into the same pipeline.
+
+- **Removed `! pip install python-pptx` from the notebook** (a friend's suggestion, and correct
+  practice) — dependency declaration belongs solely in `requirements.txt`, not scattered into
+  notebook cells that only cover one package and could silently install into the wrong
+  environment.
+
+- **Collapsed `output/` (gitignored scratch) and `example_output/` (committed example) into
+  just `example_output/`** — this is a "run once and show us the output" submission, not an
+  ongoing pipeline, so the run's output and the submitted example are the same thing. Simpler
+  than maintaining two folders for no real benefit at this scale.
+
+- **LibreOffice ignores any output filename you'd set — always names the PDF after the input's
+  basename.** Found via actual testing, initially masked by a stale leftover file with the
+  correct name from an earlier manual run (a false-positive "OK" in `verify_output`). Fixed by
+  renaming the file LibreOffice actually produces to the intended name right after conversion.
+  See `EDGE_CASE.md` #9.
+
+- **Summary slide didn't match a trimmed deck's actual content** — always used the full JSON
+  narrative regardless of how many categories were actually charted, so a partial deck's
+  summary referenced dropped content. Fixed by scoping the summary to just the included
+  categories' `insight` lines when the deck is a genuine subset, keeping the full narrative
+  when nothing was dropped. This introduced a follow-on bug: 0 categories included → empty
+  string → blank summary slide. Fixed with an `insights_to_build and` guard so 0 categories
+  falls back to the full narrative instead of nothing. See `EDGE_CASE.md` #7 and #8.
+
+- **Added docstrings throughout** (`DeckBuilder` + all methods, `parse_prompt`, every function
+  in `main.py`) — PEP 257-style, documenting purpose/args/returns, distinct from the inline `#`
+  comments explaining *why* a specific line exists.
+
+## Documented-but-not-built (see README's "Known limitations" for full detail)
+- Tone/branding/focus-area parsing (slide count only was implemented) — estimated ~2.5-3.5h to
+  build to the same quality bar, itemized in the README.
+- The slide-count parser fails silently on input outside its exact expected pattern (e.g. a
+  bare "4" with no word "slide" attached) — found via actual use, not just theorizing.
+- Summary content is static/selected between two fixed texts, not genuinely summarized or
+  contextualized to a specific user — proposed a small-LLM-based fix, scoped deliberately to
+  just the summary text (not chart data/citations, where accuracy matters most).
+- Which categories get included in a trimmed deck is decided by position in the JSON, not user
+  interest — proposed either keyword-matching in the prompt, or an explicit numbered-selection
+  menu for the CLI.
