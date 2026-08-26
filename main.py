@@ -99,7 +99,17 @@ def build_deck(analysis, preferences, output_path):
             insight['source']
         )
 
-    db.add_summary_slide(analysis['summary'], analysis['data_sources'].get('caveat'))
+    # if some categories were dropped (a smaller deck than the full data),
+    # the full narrative summary would reference content that isn't actually
+    # shown -- scope the summary down to just the included categories'
+    # insight lines instead. Full narrative is kept when nothing was dropped,
+    # since it's richer than concatenated one-liners.
+    if len(insights_to_build) < len(analysis['key_insights']):
+        summary_text = ' '.join(insight['insight'] for insight in insights_to_build)
+    else:
+        summary_text = analysis['summary']
+
+    db.add_summary_slide(summary_text, analysis['data_sources'].get('caveat'))
     db.save(output_path)
 
 
