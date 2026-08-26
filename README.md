@@ -145,6 +145,18 @@ logic is duplicated between the script and the notebook.
   with only 3 categories available), the tool prints a note explaining the shortfall and
   generates as many slides as the data actually supports, rather than fabricating content or
   erroring out.
+- **The slide-count parser fails silently on input outside its exact expected pattern.**
+  `parse_prompt` only matches a number immediately followed by the word "slide" (e.g.
+  "4-slide", "4 slides") via `r'(\d+)[- ]slide'`. Typing a bare number alone (e.g. just "4",
+  with no "slide" after it) doesn't match, so `slide_count` silently stays `None` and the
+  default full deck is generated — with no indication to the user that their input wasn't
+  understood. Found this from an actual test run: entered "4", got the default 5-slide deck
+  with no explanation. With more time, I'd fix this two ways: (1) accept a bare number as a
+  fallback (e.g. `if user_prompt.strip().isdigit(): slide_count = int(...)`) so a plain "4"
+  works too, and (2) when the regex finds no match on non-empty input, print a message like
+  "Couldn't find a slide count in your request — using the default" instead of silently
+  falling back, so the user always knows what actually happened rather than being surprised by
+  the output.
 - **LibreOffice's `--convert-to pdf` ignores any output filename you'd want — it always names
   the PDF after the input file's basename** (there's no CLI flag to set an arbitrary output
   name, only an output *directory*). Found this by actually testing: the first version of the
