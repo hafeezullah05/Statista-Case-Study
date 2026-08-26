@@ -20,7 +20,11 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Then launch the notebook:
+Then either run it as a script:
+```bash
+python main.py
+```
+or launch the notebook version (same logic, interactive/exploratory form):
 ```bash
 jupyter notebook main.ipynb
 ```
@@ -41,9 +45,10 @@ Verify the install:
 
 Manual conversion test (confirms the mechanism works before it's wired into Python):
 ```bash
-/Applications/LibreOffice.app/Contents/MacOS/soffice --headless --convert-to pdf --outdir output output/deck.pptx
+/Applications/LibreOffice.app/Contents/MacOS/soffice --headless --convert-to pdf --outdir example_output example_output/statista_ppt.pptx
 ```
-This should produce `output/deck.pdf`.
+This should produce `example_output/statista_ppt.pdf` (renamed to `statista_pdf.pdf` by the
+actual pipeline — see "Known limitations" for why the rename step exists).
 
 ## What it does
 Takes a structured JSON file (the output of a Statista AI chat query — see
@@ -56,11 +61,17 @@ optionally converted to `.pdf` via LibreOffice.
 ## How to run it
 1. Set up the Python environment (see Setup above) and install dependencies.
 2. Make sure LibreOffice is installed if you want the PDF output (see Setup above).
-3. Open `main.ipynb` in Jupyter and run all cells top to bottom. It will:
+3. Run it either as a script (`python main.py`, prompts you interactively for a request) or by
+   opening `main.ipynb` in Jupyter and running all cells top to bottom (same logic, same
+   interactive prompt cell). Either way it will:
    - Load `Task Requirment/gen_z_purchase_behavior_analysis.json`
+   - Ask for an optional free-text presentation request (press Enter for the default)
    - Build the deck via the `DeckBuilder` class in `slides_code/builder.py`
-   - Save it to `output/deck.pptx`
-   - Convert it to `output/deck.pdf`
+   - Save it to `example_output/statista_ppt.pptx`
+   - Convert it to `example_output/statista_pdf.pdf`
+
+Both entry points import the same `slides_code` modules — no logic is duplicated between the
+script and the notebook, just two different ways to run the same pipeline.
 
 ## Libraries used and why
 - **python-pptx** — the core library for building `.pptx` files: slides, textboxes, native
@@ -118,3 +129,9 @@ optionally converted to `.pdf` via LibreOffice.
   with only 3 categories available), the tool prints a note explaining the shortfall and
   generates as many slides as the data actually supports, rather than fabricating content or
   erroring out.
+- **LibreOffice's `--convert-to pdf` ignores any output filename you'd want — it always names
+  the PDF after the input file's basename** (there's no CLI flag to set an arbitrary output
+  name, only an output *directory*). Found this by actually testing: the first version of the
+  PDF export silently produced a wrongly-named file, masked by a stale leftover file with the
+  intended name from an earlier manual run. Fixed by explicitly renaming the file LibreOffice
+  produces to the intended name (`os.replace(...)`) right after conversion.
